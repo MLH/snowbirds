@@ -501,6 +501,8 @@
         }
 
         overlay.classList.add("visible");
+        // Close tab after a short delay so user goes back to the terminal
+        setTimeout(() => window.close(), 3000);
       } catch (err) {
         alert("Submission failed: " + err.message + "\n\nPlease try again.");
         doneBtn.disabled = false;

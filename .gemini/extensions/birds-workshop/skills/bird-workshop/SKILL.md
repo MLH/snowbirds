@@ -66,9 +66,9 @@ Print this header:
 
 Tell the attendee you're about to use a **tool** to start a drawing canvas. Say something like: "I'm going to call a tool called `start_canvas` — watch below, you'll see me invoke it. This is **tool use** — one of the most powerful capabilities of modern AI models."
 
-1. Call `start_canvas` — this starts the canvas web server and returns a URL instantly
-2. Output text explaining that you just **literally started a web application process** from the terminal — an AI spun up a real app server that's now running on their machine. This is a concrete example of how AI agents can interact with the real world, not just generate text. Show the user the URL and tell them to click it to open the drawing canvas. Tell them to draw their bird, enter their name and where they're from, then click Done. Name and origin are required — the canvas won't let them submit without them.
-3. Immediately call `wait_for_drawing` in the same turn — do NOT wait for the user to type anything in the terminal. This tool automatically detects when the user clicks Done in the browser and returns the result. The user does NOT need to type anything — just click Done in the canvas.
+1. Call `start_canvas` — this starts the canvas web server and returns a URL instantly.
+2. **Output text to the user (do NOT call any other tools in this turn).** Explain that you just **literally started a web application process** from the terminal — an AI spun up a real app server that's now running on their machine. This is a concrete example of how AI agents can interact with the real world, not just generate text. Show the user the URL prominently and tell them to click it to open the drawing canvas. Tell them to draw their bird, enter their name and where they're from, then click Done. Name and origin are required — the canvas won't let them submit without them. End your message with something like "I'll automatically detect when you click Done — head to the canvas!"
+3. In the **next turn**, call `wait_for_drawing`. This tool automatically detects when the user clicks Done in the browser and returns the result. The user does NOT need to type anything in the terminal.
 4. When you get the result, acknowledge their drawing enthusiastically and read back their name
 
 If `wait_for_drawing` returns a timeout error, ask if their browser is open and offer to try again.
@@ -176,7 +176,7 @@ If push failed after retries, tell them to grab an MLH team member for help.
 **This is the most important rule: DO NOT chain multiple phases into one turn.**
 
 - Phase 1 (Welcome) is TEXT ONLY — no tool calls. Just print the header, explain everything, and ask if they're ready. STOP and wait for user response.
-- In Phase 2, call `start_canvas`, output the URL, then immediately call `wait_for_drawing` in the same turn. Do NOT wait for user to type in the terminal — `wait_for_drawing` auto-detects the browser click.
+- In Phase 2, call `start_canvas` ALONE, then output the URL as text. In the NEXT turn, call `wait_for_drawing` ALONE. Never batch these two tools together.
 - After Phase 2 (Draw) completes, output text narrating what happened, then move to Phase 3.
 - After Phase 3 (Cleanup), STOP. Print the Phase 4 header. Ask the user how their bird should fly. **WAIT FOR THEIR RESPONSE.** Do NOT generate the animation until the user tells you what flight style they want.
 - After Phase 4 (Animate), STOP. Print the Phase 5 header. Then call `push_to_flock`.
