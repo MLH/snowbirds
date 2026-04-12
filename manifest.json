@@ -310,5 +310,17 @@
       "duration": "20s",
       "timing_function": "linear"
     }
+  },
+  {
+    "id": "bird_2e1661b9",
+    "image": "birds/drawing_1776029696969_processed.png",
+    "bird_name": "Jon",
+    "origin": "NYC",
+    "animation": {
+      "css_keyframes": "@keyframes fly_BOUN { 0% { transform: translate(-20vw, 50vh) rotate(0deg); } 20% { transform: translate(10vw, 30vh) rotate(10deg); } 40% { transform: translate(40vw, 50vh) rotate(-5deg); } 60% { transform: translate(70vw, 30vh) rotate(10deg); } 80% { transform: translate(100vw, 50vh) rotate(-5deg); } 100% { transform: translate(120vw, 35vh) rotate(0deg); } }",
+      "animation_name": "fly_BOUN",
+      "duration": "18s",
+      "timing_function": "ease-in-out"
+    }
   }
 ]
