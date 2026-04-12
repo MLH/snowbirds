@@ -358,5 +358,17 @@
       "duration": "16s",
       "timing_function": "ease-in-out"
     }
+  },
+  {
+    "id": "bird_d654c773",
+    "image": "birds/drawing_1776032348161_processed.png",
+    "bird_name": "sadsa",
+    "origin": "dsad",
+    "animation": {
+      "css_keyframes": "@keyframes fly_BOUN { 0% { transform: translate(-20vw, 40vh) rotate(0deg); } 25% { transform: translate(15vw, 85vh) rotate(15deg); } 50% { transform: translate(50vw, 15vh) rotate(-15deg); } 75% { transform: translate(85vw, 80vh) rotate(15deg); } 100% { transform: translate(120vw, 35vh) rotate(0deg); } }",
+      "animation_name": "fly_BOUN",
+      "duration": "16s",
+      "timing_function": "ease-in-out"
+    }
   }
 ]
