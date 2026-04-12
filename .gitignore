@@ -3,3 +3,6 @@ venv/
 __pycache__/
 *.pyc
 .DS_Store
+.gemini/extensions/birds-workshop/mcp-server/node_modules/
+.superpowers/
+docs/
