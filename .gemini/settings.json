@@ -12,7 +12,7 @@
           {
             "name": "bird-workshop-autostart",
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"The user wants to do the BirdsBirdBirds workshop. Activate the bird-workshop skill immediately and begin Phase 1 (Welcome). Do not wait for the user to say anything — start the workshop now.\"},\"systemMessage\":\"🐦 Welcome to BirdsBirdBirds!\"}'"
+            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"Activate the bird-workshop skill and follow its instructions exactly, starting with Phase 1. Phase 1 is text-only — print the welcome header, explain Gemini CLI, explain Skills, explain the activity, then ask the user if they are ready. Do not call any tools until the user confirms they are ready.\"},\"systemMessage\":\"🐦 Welcome to BirdsBirdBirds!\"}'"
           }
         ]
       }

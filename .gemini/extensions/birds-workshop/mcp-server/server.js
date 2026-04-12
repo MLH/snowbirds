@@ -40,8 +40,9 @@ server.registerTool(
     const { port } = await canvasServer.start();
     const url = `http://localhost:${port}`;
 
+    console.error(`[start_canvas] Canvas server started at ${url}`);
     return {
-      content: [{ type: "text", text: JSON.stringify({ url }) }],
+      content: [{ type: "text", text: `Canvas server started! IMPORTANT: Tell the user to open this URL in their browser: ${url}\n\nJSON: ${JSON.stringify({ url })}` }],
     };
   }
 );
