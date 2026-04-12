@@ -53,8 +53,7 @@ server.registerTool(
   {
     description:
       "Blocks until the user finishes drawing in the canvas and clicks Done. " +
-      "IMPORTANT: Do NOT call this in the same turn as start_canvas. You MUST first call start_canvas, " +
-      "then output a text message showing the user the URL, then call wait_for_drawing in a SEPARATE turn. " +
+      "Call start_canvas first, output the URL as text to the user, then call this tool sequentially (not in parallel). " +
       "Automatically detects when the user clicks Done in the browser — no terminal input needed. " +
       "Returns the saved image path, bird name, and origin.",
     inputSchema: z.object({
