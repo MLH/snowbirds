@@ -322,5 +322,17 @@
       "duration": "18s",
       "timing_function": "ease-in-out"
     }
+  },
+  {
+    "id": "bird_342c53ff",
+    "image": "birds/drawing_1776029997763_processed.png",
+    "bird_name": "Nick Quinlan",
+    "origin": "Seattle",
+    "animation": {
+      "css_keyframes": "@keyframes fly_SOAR { 0% { transform: translate(-20vw, 40vh) rotate(5deg); filter: hue-rotate(0deg); } 25% { transform: translate(15vw, 80vh) rotate(15deg); filter: hue-rotate(90deg); } 50% { transform: translate(50vw, 20vh) rotate(-10deg); filter: hue-rotate(180deg); } 75% { transform: translate(85vw, 70vh) rotate(20deg); filter: hue-rotate(270deg); } 100% { transform: translate(120vw, 35vh) rotate(-5deg); filter: hue-rotate(360deg); } }",
+      "animation_name": "fly_SOAR",
+      "duration": "18s",
+      "timing_function": "ease-in-out"
+    }
   }
 ]
