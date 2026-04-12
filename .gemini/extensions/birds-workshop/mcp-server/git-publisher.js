@@ -50,6 +50,14 @@ export async function pushToFlock({ imagePath, birdName, origin, animation, proj
   const entry = buildManifestEntry({ imagePath, birdName, origin, animation });
   const manifestPath = path.join(projectDir, "manifest.json");
 
+  // Detect current branch
+  let branch = "main";
+  try {
+    branch = execSync("git rev-parse --abbrev-ref HEAD", { cwd: projectDir, encoding: "utf-8" }).trim();
+  } catch {
+    // Fall back to main
+  }
+
   for (let attempt = 1; attempt <= MAX_PUSH_RETRIES; attempt++) {
     try {
       // Reset manifest to avoid conflicts from previous attempt
@@ -59,7 +67,7 @@ export async function pushToFlock({ imagePath, birdName, origin, animation, proj
     }
 
     try {
-      execSync("git pull origin main --rebase", { cwd: projectDir, stdio: "pipe" });
+      execSync(`git pull origin ${branch} --rebase`, { cwd: projectDir, stdio: "pipe" });
     } catch {
       // Pull failed — try to proceed anyway
     }
@@ -82,7 +90,7 @@ export async function pushToFlock({ imagePath, birdName, origin, animation, proj
     try {
       execSync("git add manifest.json birds/", { cwd: projectDir, stdio: "pipe" });
       execSync(`git commit -m "Add ${birdName}'s bird 🐦"`, { cwd: projectDir, stdio: "pipe" });
-      execSync("git push", { cwd: projectDir, stdio: "pipe" });
+      execSync(`git push origin ${branch}`, { cwd: projectDir, stdio: "pipe" });
 
       return { success: true, url: DISPLAY_URL };
     } catch {

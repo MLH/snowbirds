@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "birds": {
+      "trust": true
+    }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "name": "bird-workshop-autostart",
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"additionalContext\":\"The user wants to do the BirdsBirdBirds workshop. Activate the bird-workshop skill immediately and begin Phase 1 (Welcome). Do not wait for the user to say anything — start the workshop now.\"},\"systemMessage\":\"🐦 Welcome to BirdsBirdBirds!\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -208,7 +208,9 @@
             const dur = (baseDur * 3) + 's'; 
             
             const timing = bird.animation.timing_function || 'ease-in-out';
-            wrapper.style.animation = bird.animation.animation_name + ' ' + dur + ' ' + timing + ' infinite';
+            // Random negative delay spreads birds across their flight path on load
+            const delay = '-' + (Math.random() * baseDur * 3).toFixed(1) + 's';
+            wrapper.style.animation = bird.animation.animation_name + ' ' + dur + ' ' + timing + ' ' + delay + ' infinite';
 
             const img = document.createElement('img');
             img.crossOrigin = 'anonymous';
