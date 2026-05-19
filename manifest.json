@@ -370,5 +370,19 @@
       "duration": "16s",
       "timing_function": "ease-in-out"
     }
+  },
+  {
+    "id": "bird_571c47ed",
+    "image": "birds/drawing_1779190999862_processed.png",
+    "bird_name": "mary",
+    "origin": "kansas",
+    "species": "Kansas Swoopster",
+    "personality": "Loves to show off with dramatic aerial acrobatics.",
+    "animation": {
+      "css_keyframes": "@keyframes fly_swoop { 0% { transform: translate(-20vw, 50vh) rotate(0deg); } 25% { transform: translate(20vw, 20vh) rotate(-45deg); } 50% { transform: translate(60vw, 80vh) rotate(45deg); } 75% { transform: translate(100vw, 30vh) rotate(-30deg); } 100% { transform: translate(120vw, 50vh) rotate(0deg); } }",
+      "animation_name": "fly_swoop",
+      "duration": "18s",
+      "timing_function": "ease-in-out"
+    }
   }
 ]

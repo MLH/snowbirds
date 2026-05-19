@@ -1,8 +1,8 @@
-venv/
+node_modules/
 .env
-__pycache__/
-*.pyc
+rsa_key.p8
+rsa_key.pub
 .DS_Store
-.gemini/extensions/birds-workshop/mcp-server/node_modules/
-.superpowers/
-docs/
+*.pyc
+__pycache__/
+.venv/

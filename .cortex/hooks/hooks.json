@@ -1,0 +1,9 @@
+{
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "script": "session-start.sh",
+      "description": "Auto-activates the bird workshop skill when the user launches CoCo from the project directory."
+    }
+  ]
+}

@@ -1,28 +1,80 @@
-# 🐦 BirdsBirdBirds
+# 🐦 SnowBirds — Powered by Snowflake Cortex
 
-An interactive art installation for the **MLH AI Roadshow** — draw a bird, save it to the `birds/` folder, push it to GitHub, and watch it fly across the big screen!
+An interactive art installation for tech conferences — draw a bird, let Snowflake Cortex AI animate it, and watch it fly across the big screen!
 
-**Live Display:** [https://mpsiebert.github.io/BirdsBirdBirds/](https://mpsiebert.github.io/BirdsBirdBirds/)
+## How It Works
 
----
+1. An attendee launches **Cortex Code CLI** (`cortex`) from this project directory
+2. The `bird-workshop` skill auto-activates and guides them through:
+   - **Drawing** a bird in a browser canvas
+   - **Describing** how it should fly
+   - **Snowflake Cortex** generates a Bird Passport + CSS flight animation via `CORTEX.COMPLETE()`
+   - The bird gets **INSERT'd into a Snowflake table** and appears on the live display
 
-## How it works
-1. Attendees draw a bird in MS Paint
-2. Use [AI Studio](https://aistudio.google.com) + a provided prompt to generate a CSS flight animation
-3. Run `python3 add_bird.py birds/your_bird.png`, paste the JSON, then `git push`
-4. Their bird appears on the projected display within ~30 seconds
+## Prerequisites
 
-## Workshop Instructions
-See **[INSTRUCTIONS.md](INSTRUCTIONS.md)** for the full step-by-step guide.
+- **Snowflake account** with Cortex AI enabled
+- **Cortex Code CLI** (`cortex`) installed
+- **Node.js 18+** (for the MCP server / canvas)
+- **Snowflake CLI** (`snow`) configured with a connection in `~/.snowflake/connections.toml`
 
-## Repo structure
+## Quick Start
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/YOUR_ORG/SnowBirds
+cd SnowBirds
+
+# 2. Run the Snowflake setup SQL (once, as ACCOUNTADMIN)
+#    This creates the database, tables, role, and user
+snow sql -f setup.sql
+
+# 3. Configure your .env
+cp .env.example .env
+# Edit .env with your Snowflake account details and RSA key path
+
+# 4. Install MCP server dependencies
+cd .cortex-plugin/mcp-server && npm install && cd ../..
+
+# 5. Launch the workshop!
+cortex
 ```
-BirdsBirdBirds/
-├── index.html        ← Live projector display (GitHub Pages)
-├── manifest.json     ← Queue of all submitted birds + animation data
-├── process_birds.py  ← Automation script (runs via GitHub Actions)
-├── INSTRUCTIONS.md   ← Step-by-step attendee guide
-└── birds/            ← Submitted bird images
+
+The workshop skill activates automatically and walks the attendee through everything.
+
+## Architecture
+
+```
+SnowBirds/
+├── .cortex-plugin/              ← Cortex Code CLI plugin
+│   ├── plugin.json              ← Plugin manifest (skills + MCP config)
+│   ├── hooks/                   ← Session start hook (auto-activates workshop)
+│   ├── skills/
+│   │   └── bird-workshop/
+│   │       └── SKILL.md         ← 5-phase workshop instructions
+│   └── mcp-server/
+│       ├── server.js            ← MCP server (canvas, Cortex AI, Snowflake)
+│       ├── canvas-server.js     ← Local drawing canvas web server
+│       ├── canvas.html          ← Browser-based drawing interface
+│       ├── bird-processor.js    ← Background removal (Pillow/sharp)
+│       └── snowflake-client.js  ← CORTEX.COMPLETE() + FLOCK table ops
+├── index.html                   ← Live projected display (reads manifest.json)
+├── manifest.json                ← Local bird queue for the display
+├── setup.sql                    ← Snowflake environment setup
+├── birds/                       ← Submitted bird images
+└── .env.example                 ← Environment variable template
 ```
 
-*made with ♥ by the MLH AI Roadshow Team*
+## The Snowflake Backend
+
+- **`FLOCK` table** — Every bird is a row with AI-generated fields (species, personality, flight animation)
+- **`FLOCK_STATS` dynamic table** — Real-time aggregation of flock statistics
+- **`CORTEX.COMPLETE()`** — Calls `mistral-large2` to generate bird data + CSS animation
+- **RSA key pair auth** — No MFA prompts during the workshop
+
+## Credits
+
+Forked from [MLH/BirdsBirdBirds](https://github.com/MLH/BirdsBirdBirds) (`gemini-cli-skill` branch by Jon).
+Adapted for Snowflake Cortex by the team.
+
+made with ♥ and ❄️
