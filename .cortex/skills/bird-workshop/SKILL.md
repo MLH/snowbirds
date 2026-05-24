@@ -3,8 +3,9 @@ name: bird-workshop
 description: Guides an attendee through the SnowBirds workshop — drawing a bird, generating AI-powered flight animations with Snowflake Cortex, and shipping it to the live display. Teaches AI tool usage, prompt engineering, and the Snowflake AI Data Cloud.
 tools:
   - mcp__birds__start_canvas
-  - mcp__birds__wait_for_drawing
+  - mcp__birds__check_for_drawing
   - mcp__birds__process_bird
+  - mcp__birds__generate_bird_data
   - mcp__birds__push_to_flock
 ---
 
@@ -73,10 +74,8 @@ Tell the attendee you're about to use a **tool** to start a drawing canvas. Say 
 
 1. Call `mcp__birds__start_canvas` — this starts the canvas web server and returns a URL instantly.
 2. Output text explaining that you just **started a web application process** from the terminal — an AI spun up a real app server that's now running on their machine. Show the user the URL prominently and tell them to click it to open the drawing canvas. Tell them to draw their bird, enter their name and where they're from, then click Done. Name and origin are required — the canvas won't let them submit without them.
-3. In the same response (after the text), call `mcp__birds__wait_for_drawing`. This tool blocks until the user clicks Done in the browser — the user does NOT need to type anything in the terminal. Do NOT wait for the user to respond before calling this — just output the URL text and then call `mcp__birds__wait_for_drawing` right after.
-4. When you get the result, acknowledge their drawing enthusiastically and read back their name
-
-If `mcp__birds__wait_for_drawing` returns a timeout error, ask if their browser is open and offer to try again.
+3. **Poll `mcp__birds__check_for_drawing` until it returns `{status: "ready", ...}`.** Each call returns instantly with either `{status: "waiting"}` (keep polling) or the drawing result. Call it once right after showing the URL. If you get `waiting`, output a short text update like "Still waiting — take your time!" and call it again. The canvas server stays alive between polls. Do NOT ask the user "are you done?" in the terminal — they're in the browser; just poll. If you've polled 30+ times without success, ask if the browser is open.
+4. When you get `{status: "ready", ...}`, acknowledge their drawing enthusiastically and read back their name.
 
 ## Phase 3: Cleanup (Silent)
 
@@ -193,7 +192,7 @@ If push failed after retries, tell them to grab a team member for help.
 **This is the most important rule: DO NOT chain multiple phases into one turn.**
 
 - Phase 1 (Welcome) is TEXT ONLY — no tool calls. Just print the header, explain everything, and ask if they're ready. STOP and wait for user response.
-- In Phase 2, call `mcp__birds__start_canvas`, output the URL as text, then call `mcp__birds__wait_for_drawing` — all in the same response. Do NOT batch start_canvas and wait_for_drawing as parallel tool calls — call `mcp__birds__start_canvas` first, output text, then call `mcp__birds__wait_for_drawing` sequentially.
+- In Phase 2, call `mcp__birds__start_canvas`, output the URL as text, then poll `mcp__birds__check_for_drawing` repeatedly until you get `{status: "ready", ...}`. Each poll returns instantly — do NOT wait for the user to type in the terminal between polls. Just keep polling. If the first poll returns `waiting`, output a brief encouragement and poll again.
 - After Phase 2 (Draw) completes, output text narrating what happened, then move to Phase 3.
 - After Phase 3 (Cleanup), STOP. Print the Phase 4 header. Ask the user how their bird should fly. **WAIT FOR THEIR RESPONSE.** Do NOT generate the animation until the user tells you what flight style they want.
 - After Phase 4 (Animate & Analyze), STOP. Print the Phase 5 header. Then call `mcp__birds__push_to_flock`.

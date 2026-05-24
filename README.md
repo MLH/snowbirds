@@ -16,38 +16,59 @@ An interactive art installation for tech conferences — draw a bird, let Snowfl
 - **Snowflake account** with Cortex AI enabled
 - **Cortex Code CLI** (`cortex`) installed
 - **Node.js 18+** (for the MCP server / canvas)
-- **Snowflake CLI** (`snow`) configured with a connection in `~/.snowflake/connections.toml`
+- **Snowflake CLI** (`snow`) — install with `brew install snowflake-cli` or `pip install snowflake-cli`, then configure a connection in `~/.snowflake/connections.toml`
 
 ## Quick Start
 
+### Per workshop laptop
+
 ```bash
-# 1. Clone the repo
-git clone https://github.com/YOUR_ORG/SnowBirds
-cd SnowBirds
-
-# 2. Run the Snowflake setup SQL (once, as ACCOUNTADMIN)
-#    This creates the database, tables, role, and user
-snow sql -f setup.sql
-
-# 3. Configure your .env
-cp .env.example .env
-# Edit .env with your Snowflake account details and RSA key path
-
-# 4. Install MCP server dependencies
-cd .cortex-plugin/mcp-server && npm install && cd ../..
-
-# 5. Launch the workshop!
+git clone https://github.com/YOUR_ORG/SnowBirds && cd SnowBirds
+./setup-laptop.sh         # writes ~/.snowflake/config.toml, .env, registers MCP server, smoke-tests
 cortex
 ```
 
-The workshop skill activates automatically and walks the attendee through everything.
+When `cortex` opens, type `$bird-workshop` to activate the workshop skill — the agent will take it from there.
+
+That's it. `rsa_key.p8` ships in the repo (this is a private repo with a workshop-scoped credential — see "Rotating the booth keypair" below).
+
+### One-time per Snowflake account (facilitator, before the event)
+
+```bash
+snow sql -f setup.sql   # as ACCOUNTADMIN — creates warehouse, DB, FLOCK table, DATA_BIRDS_USER, registers public key
+```
+
+### Auth model
+
+Every booth laptop authenticates as the same `DATA_BIRDS_USER` via the same RSA private key. No password (no rotation drift, no password-policy rejections), no browser flow (no per-attendee OAuth popups), no MFA prompts.
+
+### Rotating the booth keypair
+
+The private key is committed to the repo, so anyone with repo access (current or future) can use the booth credential. After each event, rotate:
+
+```bash
+# 1. Generate a fresh keypair
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt
+openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+
+# 2. Copy the new public key body (between BEGIN/END PUBLIC KEY, no newlines)
+#    into setup.sql's ALTER USER ... SET RSA_PUBLIC_KEY = '...'
+
+# 3. Push the new key to Snowflake (zero-downtime — Snowflake supports two active
+#    public keys per user via RSA_PUBLIC_KEY + RSA_PUBLIC_KEY_2)
+snow sql -f setup.sql
+
+# 4. Commit + push the updated rsa_key.p8 / rsa_key.pub / setup.sql
+git add rsa_key.p8 rsa_key.pub setup.sql && git commit -m "Rotate booth keypair"
+```
+
+Old git history still contains the old key — if you need to invalidate it fully, run `ALTER USER DATA_BIRDS_USER UNSET RSA_PUBLIC_KEY` after laptops are off the old key.
 
 ## Architecture
 
 ```
 SnowBirds/
-├── .cortex-plugin/              ← Cortex Code CLI plugin
-│   ├── plugin.json              ← Plugin manifest (skills + MCP config)
+├── .cortex/                     ← Cortex Code CLI project config
 │   ├── hooks/                   ← Session start hook (auto-activates workshop)
 │   ├── skills/
 │   │   └── bird-workshop/
@@ -58,6 +79,8 @@ SnowBirds/
 │       ├── canvas.html          ← Browser-based drawing interface
 │       ├── bird-processor.js    ← Background removal (Pillow/sharp)
 │       └── snowflake-client.js  ← CORTEX.COMPLETE() + FLOCK table ops
+├── setup-laptop.sh              ← Per-laptop booth setup (keypair config, MCP registration, smoke test)
+├── setup-mcp.sh                 ← (legacy) MCP-only registration if you already have Snowflake configured
 ├── index.html                   ← Live projected display (reads manifest.json)
 ├── manifest.json                ← Local bird queue for the display
 ├── setup.sql                    ← Snowflake environment setup

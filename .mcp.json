@@ -4,10 +4,7 @@
       "type": "stdio",
       "command": "node",
       "args": ["server.js"],
-      "cwd": "/Users/mp/.gemini/antigravity/scratch/SnowBirds/.cortex/mcp-server",
-      "env": {
-        "PROJECT_DIR": "/Users/mp/.gemini/antigravity/scratch/SnowBirds"
-      }
+      "cwd": ".cortex/mcp-server"
     }
   }
 }

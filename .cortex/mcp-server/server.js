@@ -1,22 +1,31 @@
 // server.js — SnowBirds MCP Server
 // Provides tools for the bird workshop: canvas, image processing,
 // Cortex AI generation, and Snowflake persistence.
+import { config as loadEnv } from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Project root is two levels up from this file (.cortex/mcp-server/server.js).
+// PROJECT_DIR env var can override (absolute path expected).
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_DIR = process.env.PROJECT_DIR
+  ? path.resolve(process.env.PROJECT_DIR)
+  : path.resolve(__dirname, "..", "..");
+loadEnv({ path: path.join(PROJECT_DIR, ".env"), quiet: true });
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { CanvasServer } from "./canvas-server.js";
 import { processBird } from "./bird-processor.js";
 import {
-  connect,
+  verifyConnection,
   generateBirdData,
   insertBird,
   checkProfanity,
 } from "./snowflake-client.js";
-
-const PROJECT_DIR = process.env.PROJECT_DIR || process.cwd();
 
 const server = new McpServer({
   name: "snow-birds",
@@ -24,7 +33,14 @@ const server = new McpServer({
 });
 
 let canvasServer = null;
-let snowflakeConn = null;
+let snowflakeVerified = false;
+
+async function ensureSnowflake() {
+  if (snowflakeVerified) return;
+  const info = await verifyConnection();
+  console.error(`[snowflake] Connected as ${info.U} on account ${info.A}`);
+  snowflakeVerified = true;
+}
 
 // ── start_canvas ─────────────────────────────────────────────
 server.registerTool(
@@ -59,45 +75,42 @@ server.registerTool(
   }
 );
 
-// ── wait_for_drawing ─────────────────────────────────────────
+// ── check_for_drawing ────────────────────────────────────────
+// Non-blocking poll. Returns immediately with status: "waiting"
+// or the drawing result. The agent polls this in a loop.
+// We deliberately do NOT kill the canvas server on a poll-miss —
+// the user is still drawing.
 server.registerTool(
-  "wait_for_drawing",
+  "check_for_drawing",
   {
     description:
-      "Blocks until the user finishes drawing in the canvas and clicks Done. " +
-      "Call start_canvas first, output the URL as text to the user, then call this tool sequentially (not in parallel). " +
-      "Automatically detects when the user clicks Done in the browser — no terminal input needed. " +
-      "Returns the saved image path, bird name, and origin.",
-    inputSchema: z.object({
-      timeout_seconds: z
-        .number()
-        .optional()
-        .describe("Max seconds to wait. Default 300."),
-    }).shape,
+      "Non-blocking check for a finished drawing. Returns {status: 'waiting'} if " +
+      "the user has not clicked Done yet, or {status: 'ready', image_path, bird_name, origin} " +
+      "when they have. Call start_canvas first, then poll this tool every ~5 seconds " +
+      "until status is 'ready'. The canvas server stays alive between polls.",
+    inputSchema: z.object({}).shape,
   },
-  async ({ timeout_seconds }) => {
+  async () => {
     if (!canvasServer) {
       return {
-        content: [{ type: "text", text: JSON.stringify({ error: "Canvas not started. Call start_canvas first." }) }],
+        content: [{ type: "text", text: JSON.stringify({ status: "error", error: "Canvas not started. Call start_canvas first." }) }],
       };
     }
 
-    try {
-      console.error(`[wait_for_drawing] Blocking until drawing arrives...`);
-      const result = await canvasServer.waitForDrawing(timeout_seconds ?? 300);
-      console.error(`[wait_for_drawing] Drawing received! Stopping canvas server...`);
-      await canvasServer.stop();
-      canvasServer = null;
+    const drawing = canvasServer.getLastDrawing();
+    if (!drawing) {
       return {
-        content: [{ type: "text", text: JSON.stringify(result) }],
-      };
-    } catch (err) {
-      await canvasServer.stop();
-      canvasServer = null;
-      return {
-        content: [{ type: "text", text: JSON.stringify({ error: err.message }) }],
+        content: [{ type: "text", text: JSON.stringify({ status: "waiting" }) }],
       };
     }
+
+    // Drawing is ready — return it and stop the canvas server (done with this attendee)
+    console.error(`[check_for_drawing] Drawing ready, stopping canvas server.`);
+    try { await canvasServer.stop(); } catch {}
+    canvasServer = null;
+    return {
+      content: [{ type: "text", text: JSON.stringify({ status: "ready", ...drawing }) }],
+    };
   }
 );
 
@@ -146,15 +159,10 @@ server.registerTool(
   },
   async ({ artist_name, origin_city, flight_description }) => {
     try {
-      // Lazy-connect to Snowflake
-      if (!snowflakeConn) {
-        console.error("[generate_bird_data] Connecting to Snowflake...");
-        snowflakeConn = await connect();
-        console.error("[generate_bird_data] Connected!");
-      }
+      await ensureSnowflake();
 
       console.error("[generate_bird_data] Calling CORTEX.COMPLETE()...");
-      const birdData = await generateBirdData(snowflakeConn, {
+      const birdData = await generateBirdData({
         artistName: artist_name,
         originCity: origin_city,
         flightDescription: flight_description,
@@ -216,19 +224,14 @@ server.registerTool(
     }
 
     try {
-      // Lazy-connect to Snowflake
-      if (!snowflakeConn) {
-        console.error("[push_to_flock] Connecting to Snowflake...");
-        snowflakeConn = await connect();
-        console.error("[push_to_flock] Connected!");
-      }
+      await ensureSnowflake();
 
       // Determine image filename (relative path in birds/)
       const imageFilename = path.basename(image_path);
 
       // Insert into Snowflake FLOCK table
       console.error("[push_to_flock] Inserting into FLOCK table...");
-      const birdId = await insertBird(snowflakeConn, {
+      const birdId = await insertBird({
         artistName: bird_name,
         originCity: origin,
         latitude: bird_data.latitude,
@@ -290,3 +293,11 @@ server.registerTool(
 // ── Start ────────────────────────────────────────────────────
 const transport = new StdioServerTransport();
 await server.connect(transport);
+
+// Fire-and-forget startup check: surface auth problems in the MCP server log
+// before the agent even touches a Snowflake tool. Doesn't block startup so
+// canvas-only demos still work if Snowflake is unreachable.
+ensureSnowflake().catch((err) => {
+  console.error(`[snowflake] STARTUP CHECK FAILED: ${err.message}`);
+  console.error(`[snowflake] Set SNOWFLAKE_CONNECTION in .env to pick a specific connection from ~/.snowflake/config.toml, or run \`snow connection test\` to debug.`);
+});

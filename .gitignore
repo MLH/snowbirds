@@ -1,8 +1,9 @@
 node_modules/
 .env
-rsa_key.p8
-rsa_key.pub
 .DS_Store
 *.pyc
 __pycache__/
 .venv/
+
+# Note: rsa_key.p8 IS committed (private repo, workshop-scoped credential).
+# Rotate after every event — see README "Rotating the booth keypair".

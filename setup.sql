@@ -112,15 +112,22 @@ GRANT CREATE SNOWFLAKE.ML.ANOMALY_DETECTION ON SCHEMA DATA_BIRDS_DB.AVIARY TO RO
 GRANT ROLE DATA_BIRDS_ROLE TO ROLE SYSADMIN;
 
 -- ────────────────────────────────────────────────────────────
--- 7. BOOTH USER
+-- 7. BOOTH USER — keypair auth, no password
 -- ────────────────────────────────────────────────────────────
+-- The booth shares ONE Snowflake user across every laptop, authenticated
+-- with a shared RSA private key. The public key below is checked into the
+-- repo at rsa_key.pub; the matching private key (rsa_key.p8) is distributed
+-- to each booth laptop out-of-band. No password, no browser flow, no rotation.
 CREATE USER IF NOT EXISTS DATA_BIRDS_USER
-    PASSWORD            = 'DataBirds2026!'
     DEFAULT_ROLE        = DATA_BIRDS_ROLE
     DEFAULT_WAREHOUSE   = DATA_BIRDS_WH
     DEFAULT_NAMESPACE   = DATA_BIRDS_DB.AVIARY
-    MUST_CHANGE_PASSWORD = FALSE
-    COMMENT = 'Booth user for Data Birds app';
+    COMMENT = 'Booth user for Data Birds app — keypair auth only';
+
+-- Rotate this public key by re-running with a freshly-generated rsa_key.pub
+-- after the event. Snowflake supports two active public keys per user
+-- (RSA_PUBLIC_KEY and RSA_PUBLIC_KEY_2) for zero-downtime rotation.
+ALTER USER DATA_BIRDS_USER SET RSA_PUBLIC_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnQx957LaJhxDeetZgZUyvkrfpUicqdBdYWplvpYzX/RTttQbGUAEtqB6+NW3BnpOendTqNh6G0ouCt8yNLrfzEC57h4+LNs3EemrSjQEU8UyxFta6alBnZoAiiGIpB7Ye+bFSDTpFGMaQkwGJ33gnTFDkZkYv7ESjVsJqhAjvyKiytTmAZGSElx0aWL3tEN2Sf01RRHuACEpoGMORWlawQFa5qMuc1CxmyUlxCKjOJm15UDjLUhRuzSG36h5v2J1oS3bvUKXjRhk0nHv4yPkHLqu23m/fNK5PtYIvqU2pm5+NyI3S1wE6YSOwmXUP65ZAJqvGeYwvY0qUCLhFsMwKwIDAQAB';
 
 GRANT ROLE DATA_BIRDS_ROLE TO USER DATA_BIRDS_USER;
 
