@@ -243,14 +243,38 @@
       border: 4px outset #c0c0c0;
       padding: 16px 32px;
       background: #000080;
+      margin: 0;
     }
 
-    #success-overlay p {
+    #success-overlay .terminal-instruction {
       font-family: "Courier New", Courier, monospace;
-      font-size: 18px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #ffffff;
+      text-align: center;
+      text-shadow: 2px 2px 0 #000000;
+      letter-spacing: 2px;
+      padding: 18px 28px;
+      background: #800000;
+      border: 4px outset #ff6060;
+      max-width: 80%;
+      line-height: 1.4;
+    }
+
+    #success-overlay .terminal-instruction .arrow {
+      display: block;
+      font-size: 40px;
+      margin-bottom: 8px;
+      color: #ffff00;
+    }
+
+    #success-overlay p.fine-print {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 14px;
       color: #c0c0c0;
       text-align: center;
       letter-spacing: 1px;
+      margin: 0;
     }
   </style>
 </head>
@@ -312,7 +336,12 @@
 <!-- Success overlay -->
 <div id="success-overlay">
   <h2>Sent to Cortex!</h2>
-  <p>Head back to the terminal...</p>
+  <div class="terminal-instruction">
+    <span class="arrow">&#x2190;</span>
+    GO BACK TO YOUR TERMINAL<br>
+    TO CONTINUE THE WORKSHOP
+  </div>
+  <p class="fine-print">You can close this tab when you're done.</p>
 </div>
 
 <script>
@@ -501,8 +530,8 @@
         }
 
         overlay.classList.add("visible");
-        // Close tab after a short delay so user goes back to the terminal
-        setTimeout(() => window.close(), 3000);
+        // No auto-close — the overlay stays up so the user can read the
+        // "GO BACK TO YOUR TERMINAL" instruction. They close the tab manually.
       } catch (err) {
         alert("Submission failed: " + err.message + "\n\nPlease try again.");
         doneBtn.disabled = false;
