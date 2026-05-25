@@ -18,6 +18,20 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import fs from "fs";
 import crypto from "crypto";
+import { spawn } from "node:child_process";
+
+// Opens the given URL in the booth laptop's default browser. Best-effort —
+// failures are silent so the agent's "click this URL" fallback still works.
+function openInBrowser(url) {
+  const cmd = process.platform === "darwin" ? "open"
+            : process.platform === "win32"  ? "start"
+            : "xdg-open";
+  try {
+    const child = spawn(cmd, [url], { detached: true, stdio: "ignore" });
+    child.on("error", () => {});
+    child.unref();
+  } catch {}
+}
 import { CanvasServer } from "./canvas-server.js";
 import { processBird } from "./bird-processor.js";
 import {
@@ -66,10 +80,15 @@ server.registerTool(
     const url = `http://localhost:${port}`;
 
     console.error(`[start_canvas] Canvas server started at ${url}`);
+    openInBrowser(url);
+
     return {
       content: [{
         type: "text",
-        text: `Canvas server started! IMPORTANT: Tell the user to open this URL in their browser: ${url}\n\nJSON: ${JSON.stringify({ url })}`,
+        text: `Canvas server started and auto-opened in the user's default browser. ` +
+              `If the browser didn't pop up, the URL is ${url}. Tell the user the canvas should ` +
+              `now be open in their browser and they should draw their bird, fill in name and origin, then click Done.\n\n` +
+              `JSON: ${JSON.stringify({ url, auto_opened: true })}`,
       }],
     };
   }

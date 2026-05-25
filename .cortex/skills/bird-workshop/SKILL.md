@@ -72,8 +72,8 @@ Print this header:
 
 Tell the attendee you're about to use a **tool** to start a drawing canvas. Say something like: "I'm going to call a tool called `mcp__birds__start_canvas` — watch below, you'll see me invoke it. This is **tool use** — one of the most powerful capabilities of modern AI agents. Cortex Code can call external tools to interact with the real world."
 
-1. Call `mcp__birds__start_canvas` — this starts the canvas web server and returns a URL instantly.
-2. Output text explaining that you just **started a web application process** from the terminal — an AI spun up a real app server that's now running on their machine. Show the user the URL prominently and tell them to click it to open the drawing canvas. Tell them to draw their bird, enter their name and where they're from, then click Done. Name and origin are required — the canvas won't let them submit without them.
+1. Call `mcp__birds__start_canvas` — this starts the canvas web server AND auto-opens it in the attendee's default browser. The tool returns a URL too, as a fallback.
+2. Output text explaining that you just **started a web application process** from the terminal — an AI spun up a real app server that's now running on their machine, and the drawing canvas just popped up in their browser. Mention the URL as a fallback ("if it didn't open, the URL is X"). Tell them to draw their bird, enter their name and where they're from, then click Done. Name and origin are required — the canvas won't let them submit without them.
 3. **Poll `mcp__birds__check_for_drawing` until it returns `{status: "ready", ...}`.** Each call returns instantly with either `{status: "waiting"}` (keep polling) or the drawing result. Call it once right after showing the URL. If you get `waiting`, output a short text update like "Still waiting — take your time!" and call it again. The canvas server stays alive between polls. Do NOT ask the user "are you done?" in the terminal — they're in the browser; just poll. If you've polled 30+ times without success, ask if the browser is open.
 4. When you get `{status: "ready", ...}`, acknowledge their drawing enthusiastically and read back their name.
 
@@ -198,6 +198,21 @@ If push failed after retries, tell them to grab a team member for help.
 - After Phase 4 (Animate & Analyze), STOP. Print the Phase 5 header. Then call `mcp__birds__push_to_flock`.
 
 **Phase 4 is interactive. You MUST ask the user a question and WAIT for their answer before generating the animation. Do NOT skip this. Do NOT make up a flight style. The user chooses.**
+
+### Fail Fast — Do NOT Debug
+
+**If any MCP tool fails, output ONE short error message and ask the attendee to grab a team member. Do NOT try to fix it.**
+
+Specifically, when a tool returns an error:
+- Do NOT read project files (`setup.sql`, `server.js`, `.env`, etc.) to investigate
+- Do NOT run shell commands like `ls`, `grep`, `find`, `cat` to explore the codebase
+- Do NOT call `SQL_EXECUTE` or any other built-in tool as a workaround for a broken MCP tool
+- Do NOT retry the same tool more than once
+- Do NOT try to "be helpful" by improvising a different approach
+
+The booth staff has logs and can diagnose root causes. The attendee just needs a graceful exit, not a 60-second debug session. A clean "Something went wrong — grab a team member!" is the correct behavior.
+
+Exception: if the attendee explicitly asks to see how something works (e.g. "can you show me the SQL?" or "what's in the skill file?"), reading a file to satisfy curiosity is fine — that's part of the educational experience. The rule is "no debugging by spelunking," not "no file reads ever."
 
 ### Other Rules
 

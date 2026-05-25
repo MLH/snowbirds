@@ -12,6 +12,8 @@
 #     (keypair auth pointing at DATA_BIRDS_USER — no password, no browser)
 #   - Creates .env from .env.example with SNOWFLAKE_CONNECTION=databirds
 #   - Registers the MCP server with the cortex CLI
+#   - Pre-approves the workshop's MCP tools in ~/.snowflake/cortex/permissions.json
+#     so attendees never see a permission prompt
 #   - Smoke-tests the connection end-to-end
 
 set -euo pipefail
@@ -97,10 +99,91 @@ cortex mcp remove birds >/dev/null 2>&1 || true
 cortex mcp add birds node "$SERVER" >/dev/null
 echo "✓ Registered 'birds' MCP server with cortex CLI"
 
+# ── Pre-approve workshop tools ───────────────────────────────
+# Cortex Code asks the user to approve each MCP tool the first time the agent
+# invokes it. For a booth scenario, we pre-seed the approval cache so attendees
+# never see those prompts.
+#
+# Format reference (reverse-engineered from a live cortex session):
+#   ~/.snowflake/cortex/permissions.json
+#   {
+#     "working_dirs": {
+#       "<abs path>": {
+#         "cache": {
+#           "{\"tool_name\":\"mcp__birds__<name>\",\"type\":\"mcp\"}":
+#               {"result": "granted", "created_at": "<ISO>"}
+#         }
+#       }
+#     }
+#   }
+PERMS_FILE="${SNOW_CONFIG_DIR}/cortex/permissions.json"
+mkdir -p "$(dirname "$PERMS_FILE")"
+python3 - "$PERMS_FILE" "$REPO_DIR" <<'PY'
+import json, sys, os, datetime
+path, workdir = sys.argv[1], sys.argv[2]
+TOOLS = [
+    "mcp__birds__start_canvas",
+    "mcp__birds__check_for_drawing",
+    "mcp__birds__process_bird",
+    "mcp__birds__generate_bird_data",
+    "mcp__birds__push_to_flock",
+]
+data = {}
+if os.path.exists(path):
+    try:
+        data = json.loads(open(path).read() or "{}")
+    except json.JSONDecodeError:
+        data = {}
+data.setdefault("working_dirs", {})
+data["working_dirs"].setdefault(workdir, {}).setdefault("cache", {})
+cache = data["working_dirs"][workdir]["cache"]
+now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.") + f"{datetime.datetime.utcnow().microsecond // 1000:03d}Z"
+for tool in TOOLS:
+    key = json.dumps({"tool_name": tool, "type": "mcp"}, separators=(",", ":"))
+    cache[key] = {"result": "granted", "created_at": now}
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+PY
+echo "✓ Pre-approved workshop MCP tools for ${REPO_DIR}"
+
+# ── Shell alias ──────────────────────────────────────────────
+# Shadow the `cortex` command so volunteers can just type `cortex` and get
+# the workshop launcher. Idempotent — we wrap the alias in a marked block
+# and replace it in place on re-run.
+LAUNCHER="${REPO_DIR}/start-workshop.sh"
+ALIAS_MARKER="# >>> snowbirds workshop alias >>>"
+ALIAS_END="# <<< snowbirds workshop alias <<<"
+ALIAS_BLOCK="${ALIAS_MARKER}
+# Shadows \`cortex\` to launch the SnowBirds workshop with a scoped allowlist.
+# Remove this block to restore the original cortex command.
+alias cortex='${LAUNCHER}'
+${ALIAS_END}"
+
+install_alias() {
+  local rc="$1"
+  [ -f "$rc" ] || touch "$rc"
+  # Strip any prior block, then append the fresh one.
+  python3 - "$rc" "$ALIAS_MARKER" "$ALIAS_END" "$ALIAS_BLOCK" <<'PY'
+import re, sys, pathlib
+rc, start, end, block = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+text = pathlib.Path(rc).read_text()
+pattern = re.compile(rf"{re.escape(start)}.*?{re.escape(end)}\n?", re.DOTALL)
+text = pattern.sub("", text).rstrip() + "\n\n" + block + "\n"
+pathlib.Path(rc).write_text(text)
+PY
+  echo "✓ Installed cortex alias in $rc"
+}
+
+[ -f "${HOME}/.zshrc" ]  && install_alias "${HOME}/.zshrc"
+[ -f "${HOME}/.bashrc" ] && install_alias "${HOME}/.bashrc"
+
 # ── Smoke test ────────────────────────────────────────────────
 echo "→ Testing Snowflake connection..."
 if snow sql -c "$CONNECTION_NAME" -q "SELECT CURRENT_USER() AS U" --format json >/dev/null 2>&1; then
   echo "✓ Connection works — booth laptop is ready."
+  echo ""
+  echo "Open a new terminal and type:  cortex"
+  echo "(or run ./start-workshop.sh directly in this shell)"
 else
   echo "✗ Connection test FAILED. Run 'snow sql -c ${CONNECTION_NAME} -q \"SELECT 1\"' to debug." >&2
   exit 1

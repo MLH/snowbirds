@@ -24,13 +24,18 @@ An interactive art installation for tech conferences — draw a bird, let Snowfl
 
 ```bash
 git clone https://github.com/YOUR_ORG/SnowBirds && cd SnowBirds
-./setup-laptop.sh         # writes ~/.snowflake/config.toml, .env, registers MCP server, smoke-tests
-cortex
+./setup-laptop.sh         # one-time per laptop: config.toml, .env, MCP register, preseed approvals
+./start-workshop.sh       # what booth volunteers run for each attendee session
 ```
 
-When `cortex` opens, type `$bird-workshop` to activate the workshop skill — the agent will take it from there.
+When the session opens, type `$bird-workshop` to activate the workshop skill — the agent will take it from there.
 
 That's it. `rsa_key.p8` ships in the repo (this is a private repo with a workshop-scoped credential — see "Rotating the booth keypair" below).
+
+### Why two scripts?
+
+- `setup-laptop.sh` is **one-time per laptop**: writes the Snowflake connection, installs MCP server deps, registers the MCP server with cortex, and pre-approves the workshop's MCP tools in `~/.snowflake/cortex/permissions.json` so attendees never get a prompt for `start_canvas`, `push_to_flock`, etc.
+- `start-workshop.sh` is **per attendee session**: launches `cortex --allowed-tools ...` with a scoped allowlist of MCP tools + safe Bash patterns (`ls`, `cat`, `grep`, `find`, `head`, `tail`) + `Read`. Anything outside the list still triggers a normal approval prompt — which is your signal the agent drifted off the skill's intended path.
 
 ### One-time per Snowflake account (facilitator, before the event)
 
