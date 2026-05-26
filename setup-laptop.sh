@@ -4,8 +4,8 @@
 #   1. `snow` CLI is installed (brew install snowflake-cli, or pipx install snowflake-cli)
 #   2. setup.sql has already been run against the Snowflake account by an admin
 #
-# rsa_key.p8 (the shared booth private key) ships in the repo — git clone is
-# enough, no out-of-band copy needed.
+# rsa_key.p8 (the shared booth private key) is git-ignored and distributed
+# out-of-band — drop it into the repo root before running this script.
 #
 # What it does:
 #   - Writes a `databirds` connection entry to ~/.snowflake/config.toml
@@ -36,8 +36,8 @@ command -v cortex >/dev/null 2>&1 || {
 }
 [ -f "$PRIVATE_KEY" ] || {
   echo "error: private key not found at $PRIVATE_KEY" >&2
-  echo "       It should ship with the repo. Re-clone, or regenerate with:" >&2
-  echo "         openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt" >&2
+  echo "       It is git-ignored and must be copied in out-of-band (1Password / USB)." >&2
+  echo "       Ask the booth lead for the current rsa_key.p8." >&2
   exit 1
 }
 

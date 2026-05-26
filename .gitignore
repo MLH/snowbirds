@@ -5,5 +5,7 @@ node_modules/
 __pycache__/
 .venv/
 
-# Note: rsa_key.p8 IS committed (private repo, workshop-scoped credential).
-# Rotate after every event — see README "Rotating the booth keypair".
+# Booth keypair — distributed out-of-band, never committed.
+# See README "Rotating the booth keypair".
+rsa_key.p8
+rsa_key.pub

@@ -55,7 +55,7 @@ cortex                # aliased to start-workshop.sh
 
 When cortex opens, the attendee types `$bird-workshop` to activate the skill. The browser canvas auto-opens during Phase 2 — no URL clicking needed.
 
-That's it. `rsa_key.p8` ships in the repo (this is a private repo with a workshop-scoped credential — see "Rotating the booth keypair" below).
+That's it. `rsa_key.p8` is distributed out-of-band (1Password / encrypted Slack / USB at the booth) and dropped into the repo root before running `setup-laptop.sh` — it is **not** committed. See "Rotating the booth keypair" below.
 
 ## Why the scripts exist
 
@@ -69,10 +69,10 @@ Every booth laptop authenticates as the same `DATA_BIRDS_USER` via the same RSA 
 
 ## Rotating the booth keypair
 
-The private key is committed to the repo, so anyone with repo access (current or future) can use the booth credential. After each event:
+`rsa_key.p8` / `rsa_key.pub` are git-ignored — they must never be committed. The private key is distributed out-of-band to each booth laptop. After each event:
 
 ```bash
-# 1. Generate a fresh keypair
+# 1. Generate a fresh keypair (writes into the repo root; both files are git-ignored)
 openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt
 openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
 
@@ -83,11 +83,20 @@ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
 #    public keys per user via RSA_PUBLIC_KEY + RSA_PUBLIC_KEY_2)
 snow sql -f setup.sql
 
-# 4. Commit + push the updated rsa_key.p8 / rsa_key.pub / setup.sql
-git add rsa_key.p8 rsa_key.pub setup.sql && git commit -m "Rotate booth keypair"
+# 4. Commit ONLY setup.sql — never rsa_key.p8 or rsa_key.pub.
+git add setup.sql && git commit -m "Rotate booth keypair"
+
+# 5. Re-distribute the new rsa_key.p8 to each booth laptop via 1Password / encrypted
+#    Slack DM / USB. Do NOT email, do NOT commit, do NOT paste into a public channel.
 ```
 
-Old git history still contains the old key — if you need to invalidate it fully, run `ALTER USER DATA_BIRDS_USER UNSET RSA_PUBLIC_KEY` after laptops are off the old key.
+To fully invalidate a compromised key immediately:
+
+```bash
+snow sql -c <admin-conn> -q "ALTER USER DATA_BIRDS_USER UNSET RSA_PUBLIC_KEY; ALTER USER DATA_BIRDS_USER UNSET RSA_PUBLIC_KEY_2;"
+```
+
+Then generate + install a new keypair as above.
 
 ## Architecture
 
@@ -107,8 +116,8 @@ SnowBirds/
 ├── start-workshop.sh            ← Per-attendee launcher (what the `cortex` alias runs)
 ├── setup-mcp.sh                 ← (legacy) MCP-only registration
 ├── setup.sql                    ← Snowflake environment setup (one-time per account)
-├── rsa_key.p8                   ← Booth private key (committed; rotate after each event)
-├── rsa_key.pub                  ← Booth public key (also in setup.sql)
+├── rsa_key.p8                   ← Booth private key (git-ignored; distributed out-of-band)
+├── rsa_key.pub                  ← Booth public key (git-ignored; canonical copy lives in setup.sql)
 ├── index.html                   ← Live projected display (reads manifest.json)
 ├── manifest.json                ← Local bird queue for the display
 ├── birds/                       ← Submitted bird images
