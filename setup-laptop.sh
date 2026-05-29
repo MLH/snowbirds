@@ -14,6 +14,7 @@
 #   - Registers the MCP server with the cortex CLI
 #   - Pre-approves the workshop's MCP tools in ~/.snowflake/cortex/permissions.json
 #     so attendees never see a permission prompt
+#   - Installs shell aliases: `birds` for attendee sessions, `bigscreen` for the display
 #   - Smoke-tests the connection end-to-end
 
 set -euo pipefail
@@ -32,6 +33,10 @@ command -v snow >/dev/null 2>&1 || {
 }
 command -v cortex >/dev/null 2>&1 || {
   echo "error: 'cortex' CLI not found in PATH" >&2
+  exit 1
+}
+command -v python3 >/dev/null 2>&1 || {
+  echo "error: 'python3' not found in PATH" >&2
   exit 1
 }
 [ -f "$PRIVATE_KEY" ] || {
@@ -147,7 +152,8 @@ PY
 echo "✓ Pre-approved workshop MCP tools for ${REPO_DIR}"
 
 # ── Shell alias ──────────────────────────────────────────────
-# Installs `birds` as a shortcut for the SnowBirds workshop launcher.
+# Installs `birds` as a shortcut for the SnowBirds workshop launcher and
+# `bigscreen` as a shortcut for the projected display.
 # Idempotent — we wrap the alias in a marked block and replace it in place on
 # re-run. Older versions of this setup used this same block to shadow `cortex`,
 # so re-running setup also restores `cortex` to the real Cortex Code CLI.
@@ -160,11 +166,26 @@ ALIAS_BLOCK="${ALIAS_MARKER}
 alias birds='${LAUNCHER}'
 ${ALIAS_END}"
 
+DISPLAY_LAUNCHER="${REPO_DIR}/start-display.sh"
+DISPLAY_ALIAS_MARKER="# >>> snowbirds display alias >>>"
+DISPLAY_ALIAS_END="# <<< snowbirds display alias <<<"
+DISPLAY_ALIAS_BLOCK="${DISPLAY_ALIAS_MARKER}
+# Launches the SnowBirds live display for the projected big screen.
+# Remove this block to uninstall the shortcut.
+alias bigscreen='${DISPLAY_LAUNCHER}'
+${DISPLAY_ALIAS_END}"
+
+chmod +x "$LAUNCHER" "$DISPLAY_LAUNCHER"
+
 install_alias() {
   local rc="$1"
+  local marker="$2"
+  local marker_end="$3"
+  local block="$4"
+  local name="$5"
   [ -f "$rc" ] || touch "$rc"
   # Strip any prior block, then append the fresh one.
-  python3 - "$rc" "$ALIAS_MARKER" "$ALIAS_END" "$ALIAS_BLOCK" <<'PY'
+  python3 - "$rc" "$marker" "$marker_end" "$block" <<'PY'
 import re, sys, pathlib
 rc, start, end, block = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 text = pathlib.Path(rc).read_text()
@@ -172,11 +193,14 @@ pattern = re.compile(rf"{re.escape(start)}.*?{re.escape(end)}\n?", re.DOTALL)
 text = pattern.sub("", text).rstrip() + "\n\n" + block + "\n"
 pathlib.Path(rc).write_text(text)
 PY
-  echo "✓ Installed birds alias in $rc"
+  echo "✓ Installed ${name} alias in $rc"
 }
 
-[ -f "${HOME}/.zshrc" ]  && install_alias "${HOME}/.zshrc"
-[ -f "${HOME}/.bashrc" ] && install_alias "${HOME}/.bashrc"
+for rc in "${HOME}/.zshrc" "${HOME}/.bashrc"; do
+  [ -f "$rc" ] || continue
+  install_alias "$rc" "$ALIAS_MARKER" "$ALIAS_END" "$ALIAS_BLOCK" "birds"
+  install_alias "$rc" "$DISPLAY_ALIAS_MARKER" "$DISPLAY_ALIAS_END" "$DISPLAY_ALIAS_BLOCK" "bigscreen"
+done
 
 # ── Smoke test ────────────────────────────────────────────────
 echo "→ Testing Snowflake connection..."
@@ -184,6 +208,7 @@ if snow sql -c "$CONNECTION_NAME" -q "SELECT CURRENT_USER() AS U" --format json 
   echo "✓ Connection works — booth laptop is ready."
   echo ""
   echo "Open a new terminal and type:  birds"
+  echo "For the projected display, type:  bigscreen"
   echo "(or run ./start-workshop.sh directly in this shell)"
 else
   echo "✗ Connection test FAILED. Run 'snow sql -c ${CONNECTION_NAME} -q \"SELECT 1\"' to debug." >&2

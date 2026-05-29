@@ -4,7 +4,7 @@ An interactive art installation for tech conferences — draw a bird, let Snowfl
 
 ## How It Works
 
-1. A booth volunteer types `cortex` in a terminal (an alias for `./start-workshop.sh`, installed by `setup-laptop.sh`)
+1. A booth volunteer types `birds` in a terminal (an alias for `./start-workshop.sh`, installed by `setup-laptop.sh`)
 2. The attendee types `$bird-workshop` to activate the workshop skill
 3. The skill guides them through five phases:
    - **Draw** a bird in a browser canvas that auto-opens on the booth laptop
@@ -43,24 +43,33 @@ git clone https://github.com/YOUR_ORG/SnowBirds && cd SnowBirds
 2. Creates `.env` from `.env.example`
 3. Installs MCP server dependencies and registers the `birds` MCP server with `cortex`
 4. Pre-approves the workshop's MCP tools in `~/.snowflake/cortex/permissions.json` so attendees never see permission prompts for `start_canvas`, `push_to_flock`, etc.
-5. **Adds an alias to `~/.zshrc` and `~/.bashrc` that shadows `cortex` with `start-workshop.sh`** — so booth volunteers can just type `cortex` and get the scoped allowlist version
+5. Adds shell aliases: `birds` for attendee sessions and `bigscreen` for the projected display
 
 Open a new terminal (so the alias loads) and you're done.
 
 ### 3. Per attendee session
 
 ```bash
-cortex                # aliased to start-workshop.sh
+birds
 ```
 
 When cortex opens, the attendee types `$bird-workshop` to activate the skill. The browser canvas auto-opens during Phase 2 — no URL clicking needed.
+
+For the projected display, run this in a separate terminal:
+
+```bash
+bigscreen
+```
+
+That serves `index.html` locally and opens the live display in the browser. It reads `manifest.json`, which the workshop updates as birds are submitted.
 
 That's it. `rsa_key.p8` is distributed out-of-band (1Password / encrypted Slack / USB at the booth) and dropped into the repo root before running `setup-laptop.sh` — it is **not** committed. See "Rotating the booth keypair" below.
 
 ## Why the scripts exist
 
-- **`setup-laptop.sh`** — one-time per laptop. Snowflake connection, MCP registration, pre-approvals, shell alias.
-- **`start-workshop.sh`** — what the `cortex` alias actually runs. Launches `cortex --allowed-tools ...` with a scoped allowlist: the 5 workshop MCP tools, `Read`, and safe Bash patterns (`ls`, `cat`, `grep`, `find`, `head`, `tail`). Anything outside the list triggers a normal approval prompt — which is your signal the agent drifted off the skill's intended path.
+- **`setup-laptop.sh`** — one-time per laptop. Snowflake connection, MCP registration, pre-approvals, shell aliases.
+- **`start-workshop.sh`** — what the `birds` alias runs. Launches `cortex --allowed-tools ...` with a scoped allowlist: the 5 workshop MCP tools, `Read`, and safe Bash patterns (`ls`, `cat`, `grep`, `find`, `head`, `tail`). Anything outside the list triggers a normal approval prompt — which is your signal the agent drifted off the skill's intended path.
+- **`start-display.sh`** — what the `bigscreen` alias runs. Serves the live projected display from `index.html`.
 - **`setup-mcp.sh`** — legacy. MCP-only registration. Use `setup-laptop.sh` instead.
 
 ## Auth model
