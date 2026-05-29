@@ -96,7 +96,7 @@ if [ ! -d "$(dirname "$SERVER")/node_modules" ]; then
   (cd "$(dirname "$SERVER")" && npm install)
 fi
 cortex mcp remove birds >/dev/null 2>&1 || true
-cortex mcp add birds node "$SERVER" >/dev/null
+cortex mcp add birds -e "PROJECT_DIR=${REPO_DIR}" node "$SERVER" >/dev/null
 echo "✓ Registered 'birds' MCP server with cortex CLI"
 
 # ── Pre-approve workshop tools ───────────────────────────────
@@ -147,16 +147,17 @@ PY
 echo "✓ Pre-approved workshop MCP tools for ${REPO_DIR}"
 
 # ── Shell alias ──────────────────────────────────────────────
-# Shadow the `cortex` command so volunteers can just type `cortex` and get
-# the workshop launcher. Idempotent — we wrap the alias in a marked block
-# and replace it in place on re-run.
+# Installs `birds` as a shortcut for the SnowBirds workshop launcher.
+# Idempotent — we wrap the alias in a marked block and replace it in place on
+# re-run. Older versions of this setup used this same block to shadow `cortex`,
+# so re-running setup also restores `cortex` to the real Cortex Code CLI.
 LAUNCHER="${REPO_DIR}/start-workshop.sh"
 ALIAS_MARKER="# >>> snowbirds workshop alias >>>"
 ALIAS_END="# <<< snowbirds workshop alias <<<"
 ALIAS_BLOCK="${ALIAS_MARKER}
-# Shadows \`cortex\` to launch the SnowBirds workshop with a scoped allowlist.
-# Remove this block to restore the original cortex command.
-alias cortex='${LAUNCHER}'
+# Launches the SnowBirds workshop with a scoped Cortex Code allowlist.
+# Remove this block to uninstall the shortcut.
+alias birds='${LAUNCHER}'
 ${ALIAS_END}"
 
 install_alias() {
@@ -171,7 +172,7 @@ pattern = re.compile(rf"{re.escape(start)}.*?{re.escape(end)}\n?", re.DOTALL)
 text = pattern.sub("", text).rstrip() + "\n\n" + block + "\n"
 pathlib.Path(rc).write_text(text)
 PY
-  echo "✓ Installed cortex alias in $rc"
+  echo "✓ Installed birds alias in $rc"
 }
 
 [ -f "${HOME}/.zshrc" ]  && install_alias "${HOME}/.zshrc"
@@ -182,7 +183,7 @@ echo "→ Testing Snowflake connection..."
 if snow sql -c "$CONNECTION_NAME" -q "SELECT CURRENT_USER() AS U" --format json >/dev/null 2>&1; then
   echo "✓ Connection works — booth laptop is ready."
   echo ""
-  echo "Open a new terminal and type:  cortex"
+  echo "Open a new terminal and type:  birds"
   echo "(or run ./start-workshop.sh directly in this shell)"
 else
   echo "✗ Connection test FAILED. Run 'snow sql -c ${CONNECTION_NAME} -q \"SELECT 1\"' to debug." >&2

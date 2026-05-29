@@ -17,9 +17,18 @@
 #   - File tools:     Read, Edit, Write, Glob, Grep
 
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")"
+WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$WORKSPACE"
+
+MCP_CONFIG=$(cat <<EOF
+{"mcpServers":{"birds":{"command":"node","args":["${WORKSPACE}/.cortex/mcp-server/server.js"],"transport":"stdio","env":{"PROJECT_DIR":"${WORKSPACE}"}}}}
+EOF
+)
 
 exec cortex \
+  -w "$WORKSPACE" \
+  --connection databirds \
+  --mcp-config "$MCP_CONFIG" \
   --allowed-tools \
     mcp__birds__start_canvas \
     mcp__birds__check_for_drawing \
