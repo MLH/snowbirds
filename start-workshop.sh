@@ -20,6 +20,21 @@ set -euo pipefail
 WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$WORKSPACE"
 
+# Cortex Code has two Snowflake connection concepts:
+# - --connection: SQL/session connection used by built-in Snowflake tools.
+# - cortexAgentConnectionName: agent-service connection used before the TUI opens.
+# Use the known-working Vibe connection for the agent by default so onboarding
+# does not fall back to unrelated connections like postcard.
+AGENT_CONNECTION="${SNOWBIRDS_AGENT_CONNECTION:-vibecoding}"
+SQL_CONNECTION="${SNOWBIRDS_SQL_CONNECTION:-databirds}"
+
+SETTINGS_CONFIG="${WORKSPACE}/.cortex-launch-settings.json"
+cat > "$SETTINGS_CONFIG" <<EOF
+{
+  "cortexAgentConnectionName": "${AGENT_CONNECTION}"
+}
+EOF
+
 MCP_SERVER_DIR="${WORKSPACE}/.cortex/mcp-server"
 if [ ! -d "${MCP_SERVER_DIR}/node_modules" ]; then
   echo "Installing SnowBirds MCP dependencies..."
@@ -27,13 +42,14 @@ if [ ! -d "${MCP_SERVER_DIR}/node_modules" ]; then
 fi
 
 MCP_CONFIG=$(cat <<EOF
-{"mcpServers":{"birds":{"command":"node","args":["${WORKSPACE}/.cortex/mcp-server/server.js"],"transport":"stdio","env":{"PROJECT_DIR":"${WORKSPACE}"}}}}
+{"mcpServers":{"birds":{"command":"node","args":["${WORKSPACE}/.cortex/mcp-server/server.js"],"transport":"stdio","env":{"PROJECT_DIR":"${WORKSPACE}","SNOWFLAKE_CONNECTION":"${SQL_CONNECTION}","SNOWFLAKE_WAREHOUSE":"DATA_BIRDS_WH","SNOWFLAKE_DATABASE":"DATA_BIRDS_DB","SNOWFLAKE_SCHEMA":"AVIARY"}}}}
 EOF
 )
 
 exec cortex \
   -w "$WORKSPACE" \
-  --connection databirds \
+  --connection "$SQL_CONNECTION" \
+  --config "$SETTINGS_CONFIG" \
   --mcp-config "$MCP_CONFIG" \
   --allowed-tools \
     mcp__birds__start_canvas \
