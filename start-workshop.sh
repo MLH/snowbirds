@@ -20,6 +20,12 @@ set -euo pipefail
 WORKSPACE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$WORKSPACE"
 
+MCP_SERVER_DIR="${WORKSPACE}/.cortex/mcp-server"
+if [ ! -d "${MCP_SERVER_DIR}/node_modules" ]; then
+  echo "Installing SnowBirds MCP dependencies..."
+  (cd "$MCP_SERVER_DIR" && npm install)
+fi
+
 MCP_CONFIG=$(cat <<EOF
 {"mcpServers":{"birds":{"command":"node","args":["${WORKSPACE}/.cortex/mcp-server/server.js"],"transport":"stdio","env":{"PROJECT_DIR":"${WORKSPACE}"}}}}
 EOF
