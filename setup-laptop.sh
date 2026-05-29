@@ -8,7 +8,7 @@
 # out-of-band — drop it into the repo root before running this script.
 #
 # What it does:
-#   - Writes a `databirds` connection entry to ~/.snowflake/config.toml
+#   - Writes a `databirds` connection entry to ~/.snowflake/connections.toml
 #     (keypair auth pointing at DATA_BIRDS_USER — no password, no browser)
 #   - Creates .env from .env.example with SNOWFLAKE_CONNECTION=databirds
 #   - Registers the MCP server with the cortex CLI
@@ -20,7 +20,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SNOW_CONFIG_DIR="${HOME}/.snowflake"
-SNOW_CONFIG="${SNOW_CONFIG_DIR}/config.toml"
+SNOW_CONNECTIONS="${SNOW_CONFIG_DIR}/connections.toml"
 PRIVATE_KEY="${REPO_DIR}/rsa_key.p8"
 CONNECTION_NAME="databirds"
 SNOWFLAKE_ACCOUNT="${SNOWFLAKE_ACCOUNT:-ogtostq-ooc82737}"
@@ -47,22 +47,22 @@ chmod 600 "$PRIVATE_KEY"
 # ── Write the databirds connection entry ─────────────────────
 mkdir -p "$SNOW_CONFIG_DIR"
 chmod 700 "$SNOW_CONFIG_DIR"
-touch "$SNOW_CONFIG"
-chmod 600 "$SNOW_CONFIG"
+touch "$SNOW_CONNECTIONS"
+chmod 600 "$SNOW_CONNECTIONS"
 
-# Remove any prior [connections.databirds] block, then append the fresh one.
-python3 - "$SNOW_CONFIG" "$CONNECTION_NAME" <<'PY'
+# Remove any prior [databirds] block, then append the fresh one.
+python3 - "$SNOW_CONNECTIONS" "$CONNECTION_NAME" <<'PY'
 import re, sys, pathlib
 path, name = sys.argv[1], sys.argv[2]
 text = pathlib.Path(path).read_text() if pathlib.Path(path).exists() else ""
-pattern = re.compile(rf"(?ms)^\[connections\.{re.escape(name)}\].*?(?=^\[|\Z)")
+pattern = re.compile(rf"(?ms)^\[{re.escape(name)}\].*?(?=^\[|\Z)")
 new = pattern.sub("", text).rstrip() + "\n"
 pathlib.Path(path).write_text(new if new.strip() else "")
 PY
 
-cat >> "$SNOW_CONFIG" <<EOF
+cat >> "$SNOW_CONNECTIONS" <<EOF
 
-[connections.${CONNECTION_NAME}]
+[${CONNECTION_NAME}]
 account = "${SNOWFLAKE_ACCOUNT}"
 user = "DATA_BIRDS_USER"
 role = "DATA_BIRDS_ROLE"
@@ -73,7 +73,7 @@ authenticator = "SNOWFLAKE_JWT"
 private_key_file = "${PRIVATE_KEY}"
 EOF
 
-echo "✓ Added '${CONNECTION_NAME}' connection to ${SNOW_CONFIG}"
+echo "✓ Added '${CONNECTION_NAME}' connection to ${SNOW_CONNECTIONS}"
 
 # ── .env ──────────────────────────────────────────────────────
 if [ ! -f "$REPO_DIR/.env" ] && [ -f "$REPO_DIR/.env.example" ]; then
