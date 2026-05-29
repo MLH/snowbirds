@@ -129,7 +129,7 @@ export async function insertBird(birdData) {
     INSERT INTO ${FLOCK_TABLE} (
       BIRD_ID, ARTIST_NAME, ORIGIN_CITY, LATITUDE, LONGITUDE,
       BIRD_DESCRIPTION, SPECIES, FLIGHT_STYLE, SPEED_KMH,
-      ALTITUDE, PERSONALITY, FUN_FACT, IMAGE_FILENAME, ANIMATION_JSON
+      ALTITUDE, PERSONALITY, FUN_FACT, IMAGE_FILENAME, IMAGE_DATA_URL, ANIMATION_JSON
     )
     SELECT
       ${snowQuote(birdId)},
@@ -145,6 +145,7 @@ export async function insertBird(birdData) {
       ${snowQuote(birdData.personality || "A free spirit")},
       ${snowQuote(birdData.funFact || "Every bird is unique!")},
       ${snowQuote(birdData.imageFilename || "")},
+      ${snowQuote(birdData.imageDataUrl || "")},
       PARSE_JSON(${snowQuote(JSON.stringify(birdData.animation || {}))})
   `;
 

@@ -61,7 +61,7 @@ For the projected display, run this in a separate terminal:
 bigscreen
 ```
 
-That serves `index.html` locally and opens the live display in the browser. It reads `manifest.json`, which the workshop updates as birds are submitted.
+That serves `index.html` locally and opens the live display in the browser. It continuously syncs `manifest.json` from Snowflake, so a single master display laptop can show birds submitted from all attendee laptops.
 
 That's it. `rsa_key.p8` is distributed out-of-band (1Password / encrypted Slack / USB at the booth) and dropped into the repo root before running `setup-laptop.sh` — it is **not** committed. See "Rotating the booth keypair" below.
 
@@ -128,7 +128,8 @@ SnowBirds/
 ├── rsa_key.p8                   ← Booth private key (git-ignored; distributed out-of-band)
 ├── rsa_key.pub                  ← Booth public key (git-ignored; canonical copy lives in setup.sql)
 ├── index.html                   ← Live projected display (reads manifest.json)
-├── manifest.json                ← Local bird queue for the display
+├── manifest.json                ← Display cache, synced from Snowflake by bigscreen
+├── sync-display-manifest.py     ← Polls Snowflake FLOCK table for the display
 ├── birds/                       ← Submitted bird images
 ├── .env.example                 ← Environment variable template
 └── .mcp.json                    ← MCP server registration for the cortex CLI

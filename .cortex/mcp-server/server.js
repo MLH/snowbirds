@@ -49,6 +49,12 @@ const server = new McpServer({
 let canvasServer = null;
 let snowflakeVerified = false;
 
+function imageDataUrl(imagePath) {
+  const ext = path.extname(imagePath).toLowerCase();
+  const mime = ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+  return `data:${mime};base64,${fs.readFileSync(imagePath).toString("base64")}`;
+}
+
 async function ensureSnowflake() {
   if (snowflakeVerified) return;
   const info = await verifyConnection();
@@ -247,6 +253,7 @@ server.registerTool(
 
       // Determine image filename (relative path in birds/)
       const imageFilename = path.basename(image_path);
+      const dataUrl = imageDataUrl(image_path);
 
       // Insert into Snowflake FLOCK table
       console.error("[push_to_flock] Inserting into FLOCK table...");
@@ -263,6 +270,7 @@ server.registerTool(
         personality: bird_data.personality,
         funFact: bird_data.fun_fact,
         imageFilename: imageFilename,
+        imageDataUrl: dataUrl,
         animation: animation,
       });
       console.error(`[push_to_flock] Inserted bird ${birdId} into Snowflake!`);
@@ -280,7 +288,7 @@ server.registerTool(
 
       const entry = {
         id: birdId,
-        image: `birds/${imageFilename}`,
+        image: dataUrl,
         bird_name,
         origin,
         species: bird_data.species,

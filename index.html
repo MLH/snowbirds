@@ -214,10 +214,16 @@
             wrapper.style.animation = bird.animation.animation_name + ' ' + dur + ' ' + timing + ' ' + delay + ' infinite';
 
             const img = document.createElement('img');
-            img.crossOrigin = 'anonymous';
+            if (!bird.image || !bird.image.startsWith('data:')) {
+                img.crossOrigin = 'anonymous';
+            }
             img.src = bird.image;
             img.className = 'bird';
             img.onload = function () { removeWhiteBackground(img); };
+            img.onerror = function () {
+                console.warn('Could not load bird image:', bird.image);
+                wrapper.remove();
+            };
             wrapper.appendChild(img);
 
             if (bird.bird_name || bird.origin) {
